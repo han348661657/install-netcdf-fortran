@@ -26,13 +26,13 @@ set -e
 # ============================================================================
 
 ## define compilers
-CC=${CC:-gcc}
-FC=${FC:-gfortran}
+CC=${CC:-icc}
+FC=${FC:-ifort}
 F90=${FC}
 F77=${FC}
 
 # main directory
-MAINDIR=${MAINDIR:-/usr/local/netcdf}
+MAINDIR=${MAINDIR:-/data/soft/netcdf4.4.4/intel}
 
 # version of libs
 CLTAG="7.61.0"
@@ -44,7 +44,7 @@ NFTAG="4.4.4"
 ## donwload source code of depencies
 wget -nc -nv https://curl.haxx.se/download/curl-$CLTAG.tar.gz
 wget -nc -nv https://zlib.net/fossils/zlib-$ZLTAG.tar.gz
-wget -nc -nv https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-$H5TAG/src/hdf5-$H5TAG.tar 
+wget -nc -nv https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$H5TAG/src/hdf5-${H5TAG}.tar.gz
 wget -nc -nv ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-$NCTAG.tar.gz
 wget -nc -nv ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-fortran-$NFTAG.tar.gz
 
@@ -74,12 +74,12 @@ make install > config.log 2>&1
 cd ..
 rm -rf zlib-$ZLTAG
 
-## hdf5
-tar -xf hdf5-$H5TAG.tar
+# hdf5
+tar -xf hdf5-${H5TAG}.tar.gz
 cd hdf5-$H5TAG/
 H5DIR=$MAINDIR
 echo " --->> Compiling hdf5-$H5TAG"
-./configure --with-zlib=${ZDIR} --prefix=${H5DIR} > config.log 2>&1
+./configure --with-zlib=${ZDIR} --enable-fortran --enable-fortran2003  --prefix=${H5DIR} > config.log 2>&1
 make -j4 > config.log 2>&1
 make install > config.log 2>&1
 cd ..
@@ -96,13 +96,16 @@ make install > config.log 2>&1
 cd ..
 rm -rf netcdf-$NCTAG
 
-## netcdf4-fortran
+# netcdf4-fortran
 tar -xf netcdf-fortran-$NFTAG.tar.gz
 cd netcdf-fortran-$NFTAG/
 echo " --->> Compiling netcdf-fortran-$NFTAG"
-CPPFLAGS=-I${NCDIR}/include LDFLAGS=-L${NCDIR}/lib ./configure --prefix=${NCDIR} > config.log 2>&1
-make -j4 > config.log 2>&1
-make install > config.log 2>&1
+LD_LIBRARY_PATH=${NCDIR}/lib:$LD_LIBRARY_PATH
+./configure --prefix=${NCDIR} CPPFLAGS=-I${NCDIR}/include LDFLAGS=-L${NCDIR}/lib CC=icc FC=ifort
+
+#make -j4 > config.log 2>&1
+make -j4 
+make install 
 cd ..
 rm -rf netcdf-fortran-$NFTAG
 
